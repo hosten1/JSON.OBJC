@@ -1,6 +1,6 @@
 # JSON.OBJC
 修改自https://github.com/haydump/objcJSON oc
-#实例代码
+# 实例代码
 ```
  - (NSDictionary *)sampleDictionary {
     return @{
@@ -30,7 +30,7 @@
              };
 }
 ```
-#使用
+# 使用
 ```
  RTCJSON *json = [[RTCJSON alloc]initWithObject:[self sampleDictionary]];
   RTCJSON *re = json[@"likedUserIDs"];
