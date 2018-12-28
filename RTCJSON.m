@@ -49,6 +49,7 @@ typedef enum {
     JSONtype _type;
     NSError * _error;
 }
+@property (nonatomic,copy)NSString *rawString;
 @end
 
 /**
@@ -190,7 +191,10 @@ typedef enum {
 //通过下标设置属性值
 
 - (void)setObject:(id)anObject atIndexedSubscript:(NSUInteger)index{
-    if (_type == JSONtypeArray) {
+    if (_type == JSONtypeNull) {//如果只是初始化了对象，在向数组赋值时候，先创建一个空数组
+        _object = [NSArray arrayWithObject:anObject];
+        _type = JSONtypeArray;
+    }else if (_type == JSONtypeArray) {
         NSMutableArray * ret = [NSMutableArray arrayWithArray:_object];
         if (index < [ret count]) {
             if ([anObject isKindOfClass:[RTCJSON class]]){
@@ -215,7 +219,10 @@ typedef enum {
 }
 //通过键值下标设置属性
 - (void)setObject:(id)object forKeyedSubscript:(id < NSCopying > )aKey{
-    if (_type == JSONtypeDictionary) {
+    if (_type == JSONtypeNull) {//如果只是初始化了对象，在向数组赋值时候，先创建一个空数组
+        _object = [NSDictionary dictionaryWithObjectsAndKeys:object,aKey, nil];
+        _type = JSONtypeDictionary;
+    }else if (_type == JSONtypeDictionary) {
         NSMutableDictionary *ret = [[NSMutableDictionary alloc]initWithDictionary:_object];
         if ([ret.allKeys containsObject:aKey]) {
             if ([object isKindOfClass:[RTCJSON class]]){
@@ -251,10 +258,11 @@ typedef enum {
     
     
 }
+
 /**
  *  @return dictionary of original key and JSON object value, or nil
  */
-- (NSMutableDictionary *)dictionary {
+- (NSDictionary *)dictionary {
     if (_type == JSONtypeDictionary) {
         NSDictionary * dict = _object;
         NSMutableDictionary * ret = [[NSMutableDictionary alloc] initWithCapacity:[dict count]];
@@ -265,10 +273,16 @@ typedef enum {
     }
     return nil;
 }
--(void)setDictionary:(NSMutableDictionary *)dictionary{
-    if (dictionary) {
+-(void)setDictionary:(NSDictionary *)dictionary{
+    if (dictionary && _type == JSONtypeDictionary) {
         NSMutableDictionary * ret = [[NSMutableDictionary alloc] initWithDictionary:_object];
-        [ret addEntriesFromDictionary:dictionary];
+        [[NSDictionary dictionaryWithDictionary:dictionary] enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
+            if ([obj isKindOfClass:[RTCJSON class]]) {
+                [ret setObject:((RTCJSON*)obj).object forKey:key];
+            }else{
+                [ret setObject:obj forKey:key];
+            }
+        }];
         _object = [NSDictionary dictionaryWithDictionary:ret];
     }else{
         _object =  [RTCJSON nullJSON];
@@ -277,7 +291,7 @@ typedef enum {
 /**
  *  @return array of JSON object or nil
  */
-- (NSMutableArray *)array {
+- (NSArray *)array {
     if (_type == JSONtypeArray) {
         NSArray * arr = _object;
         NSMutableArray * ret = [[NSMutableArray alloc] initWithCapacity:[arr count]];
@@ -288,10 +302,16 @@ typedef enum {
     }
     return nil;
 }
--(void)setArray:(NSMutableArray *)array{
-    if (array) {
+-(void)setArray:(NSArray *)array{
+    if (array && _type == JSONtypeArray) {
         NSMutableArray * ret = [[NSMutableArray alloc] initWithArray:array];
-        [ret addObjectsFromArray:array];
+        [array enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+            if ([obj isKindOfClass:[RTCJSON class]]) {
+                [ret addObject:((RTCJSON*)obj).object];
+            }else{
+                [ret addObject:obj];
+            }
+        }];
         _object = [NSArray arrayWithArray:ret];
     }else{
         _object =  [RTCJSON nullJSON];
@@ -335,6 +355,71 @@ typedef enum {
     }else{
         _object =  [RTCJSON nullJSON];
     }
+}
+/**
+ *  @return dictionary of original key and JSON object value, or nil
+ */
+- (NSDictionary *)dictionaryObj {
+    if (_type == JSONtypeDictionary) {
+        return [NSMutableDictionary dictionaryWithDictionary:_object];
+    }
+    return nil;
+}
+-(void)setDictionaryObj:(NSDictionary *)dictionaryObj{
+    if (dictionaryObj) {
+        NSMutableDictionary * ret = [[NSMutableDictionary alloc] initWithDictionary:_object];
+        [ret addEntriesFromDictionary:dictionaryObj];
+        _object = [NSDictionary dictionaryWithDictionary:ret];
+    }else{
+        _object =  [RTCJSON nullJSON];
+    }
+}
+/**
+ *  @return array of JSON object or nil
+ */
+- (NSArray *)arrayObj {
+    if (_type == JSONtypeArray) {
+        return [NSMutableArray arrayWithArray:_object];
+    }
+    return nil;
+}
+-(void)setArrayObj:(NSArray *)arrayObj{
+    if (arrayObj) {
+        NSMutableArray * ret = [[NSMutableArray alloc] initWithArray:_object];
+        [ret addObjectsFromArray:arrayObj];
+        _object = [NSArray arrayWithArray:ret];
+    }else{
+        _object =  [RTCJSON nullJSON];
+    }
+}
+-(NSString *)rawString{
+    NSString * description = @"Unknown";
+    switch (_type) {
+        case JSONtypeDictionary:
+        case JSONtypeArray:
+        {
+            NSData * data = [NSJSONSerialization dataWithJSONObject:_object options:NSJSONWritingPrettyPrinted error:nil];
+            description = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+        }
+            break;
+        case JSONtypeString:
+            description = _object;
+            break;
+        case JSONtypeNumber:
+            description = [(NSNumber *)_object stringValue];
+            break;
+        case JSONtypeBool:
+        {
+            description = (BOOL)_object ? @"true" : @"false";
+        }
+            break;
+        case JSONtypeNull:
+            description = @"Null";
+            break;
+        default:
+            break;
+    }
+    return description;
 }
 /**
  *  Description

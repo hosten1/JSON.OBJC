@@ -46,7 +46,10 @@ typedef enum {
 - (instancetype)initWithParseString:(NSString *)string; // 解析json数据
 - (instancetype)initWithData:(NSData *)data; // only accept NSData
 - (instancetype)initWithData:(NSData *)data options:(NSJSONReadingOptions)opt error:(NSError **)error;
-
+/**
+ * 调用方法：字典：set：a[@"dd"] = b  get：b = a[@"dd"]
+ *         数组：set：a[1] = b  get：b = a[1]
+**/
 // subscripting:
 - (RTCJSON *)objectAtIndexedSubscript:(NSUInteger)idx;
 - (RTCJSON *)objectForKeyedSubscript:(id)key;
@@ -55,12 +58,19 @@ typedef enum {
 //通过键值下标设置属性
 - (void)setObject:(id)object forKeyedSubscript:(id < NSCopying > )aKey;
 //- (void)changeValueForKey:(NSString *)key changeValue:(id)obj error:(NSError**)error;
+/****end***/
 
-
-@property (nonatomic, strong,readwrite)NSMutableDictionary*  dictionary;
-@property (nonatomic, strong,readwrite)NSMutableArray *array;
+@property (nonatomic, strong,readwrite)NSDictionary*  dictionary;
+@property (nonatomic, strong,readwrite)NSArray *array;
 @property (nonatomic, copy,readwrite)  NSString *string;
 @property (nonatomic, strong,readwrite)NSNumber *number;
 @property (nonatomic, assign,readwrite)NSNumber *boolNumber;// to check for nil, and if exists, use boolValue
+
+@property (nonatomic, strong,readwrite)NSDictionary*  dictionaryObj;
+@property (nonatomic, strong,readwrite)NSArray *arrayObj;
+/**
+ json string 
+ */
+@property (nonatomic,readonly)NSString *rawString;
 
 @end
